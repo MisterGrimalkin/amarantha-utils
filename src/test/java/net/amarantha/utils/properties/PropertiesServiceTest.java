@@ -23,12 +23,14 @@ public class PropertiesServiceTest {
         props.setProperty("TestString", TEST_STRING);
         props.setProperty("TestInt", TEST_INT+"");
         props.setProperty("TestRGB", TEST_RGB.toString());
+        props.setProperty("TestClass", "net.amarantha.utils.properties.TestPropsInject");
 
         TestProps testProps = new TestProps();
 
         assertNull(testProps.getTestString());
         assertNull(testProps.getTestInt());
         assertNull(testProps.getTestRGB());
+        assertNull(testProps.getTestClass());
 
         try {
             props.injectProperties(testProps);
@@ -39,6 +41,7 @@ public class PropertiesServiceTest {
         assertEquals(TEST_STRING, testProps.getTestString());
         assertEquals(TEST_INT, testProps.getTestInt().intValue());
         assertEquals(TEST_RGB, testProps.getTestRGB());
+        assertEquals(TestPropsInject.class, testProps.getTestClass());
 
     }
 

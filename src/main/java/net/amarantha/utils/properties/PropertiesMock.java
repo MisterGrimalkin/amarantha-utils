@@ -10,7 +10,9 @@ public class PropertiesMock extends PropertiesService {
 
     @Override
     protected Properties loadProperties(String filename, boolean create) {
-        return new Properties();
+        Properties properties = new Properties();
+        propertySets.put(filename, properties);
+        return properties;
     }
 
     @Override
