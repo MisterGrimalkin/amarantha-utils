@@ -56,11 +56,6 @@ public class PropertiesService {
     // Properties Files //
     //////////////////////
 
-    public PropertiesService() {
-        defProps = loadProperties(DEF_FILENAME, false);
-        appProps = loadProperties(APP_FILENAME, true);
-    }
-
     protected Properties loadProperties(String filename, boolean create) {
 
         Properties properties = new Properties();
@@ -85,8 +80,6 @@ public class PropertiesService {
         return properties;
     }
 
-    private Properties appProps;
-    private Properties defProps;
     protected Map<String, Properties> propertySets = new HashMap<>();
     private Map<String, Boolean> dirty = new HashMap<>();
 
@@ -118,6 +111,11 @@ public class PropertiesService {
         if (PLACEHOLDER.equals(value)) {
             throw new IllegalArgumentException("That value is the placeholder, sorry!");
         }
+        String[] pieces = propName.split("/");
+        if ( pieces.length > 1 ) {
+            properties = loadProperties(pieces[0], true);
+            propName = pieces[1];
+        }
         properties.setProperty(propName, value);
         saveProperties();
     }
@@ -144,6 +142,11 @@ public class PropertiesService {
     }
 
     public String getString(Properties properties, String propName) throws PropertyNotFoundException {
+        String[] pieces = propName.split("/");
+        if ( pieces.length > 1 ) {
+            properties = loadProperties(pieces[0], true);
+            propName = pieces[1];
+        }
         String propStr = properties.getProperty(propName);
         if (propStr == null || PLACEHOLDER.equals(propStr)) {
             propStr = defaultProps().getProperty(propName);

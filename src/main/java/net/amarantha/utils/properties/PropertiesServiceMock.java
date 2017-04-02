@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class PropertiesMock extends PropertiesService {
+public class PropertiesServiceMock extends PropertiesService {
 
     private Map<String, String> properties = new HashMap<>();
 

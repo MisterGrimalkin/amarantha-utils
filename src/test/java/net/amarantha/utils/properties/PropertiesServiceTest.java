@@ -1,7 +1,6 @@
 package net.amarantha.utils.properties;
 
 import net.amarantha.utils.colour.RGB;
-import org.junit.Assert;
 import org.junit.Test;
 
 import static net.amarantha.utils.colour.RGB.MAGENTA;
@@ -11,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PropertiesServiceTest {
 
-    private PropertiesService props = new PropertiesMock();
+    private PropertiesService props = new PropertiesServiceMock();
 
     private static final String TEST_STRING = "There once was a very famous man";
     private static final int TEST_INT = 42;
