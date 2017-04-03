@@ -1,8 +1,5 @@
 package net.amarantha.utils.osc;
 
-import com.illposed.osc.OSCListener;
-import com.illposed.osc.OSCMessage;
-
 import java.util.*;
 
 public class OscServiceMock implements OscService {

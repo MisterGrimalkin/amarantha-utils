@@ -4,9 +4,7 @@ import net.amarantha.utils.colour.RGB;
 import org.junit.Test;
 
 import static net.amarantha.utils.colour.RGB.MAGENTA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class PropertiesServiceTest {
 

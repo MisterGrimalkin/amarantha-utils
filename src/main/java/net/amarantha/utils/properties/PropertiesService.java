@@ -1,8 +1,7 @@
 package net.amarantha.utils.properties;
 
-import com.sun.org.apache.xerces.internal.impl.dv.xs.BooleanDV;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import net.amarantha.utils.colour.RGB;
+import net.amarantha.utils.reflection.ReflectionUtils;
 
 import javax.inject.Singleton;
 import java.io.*;
@@ -112,7 +111,7 @@ public class PropertiesService {
             throw new IllegalArgumentException("That value is the placeholder, sorry!");
         }
         String[] pieces = propName.split("/");
-        if ( pieces.length > 1 ) {
+        if (pieces.length > 1) {
             properties = loadProperties(pieces[0], true);
             propName = pieces[1];
         }
@@ -121,7 +120,7 @@ public class PropertiesService {
     }
 
     protected void saveProperties() {
-        propertySets.forEach((filename,properties)->{
+        propertySets.forEach((filename, properties) -> {
             try (FileOutputStream out = new FileOutputStream("config/" + filename + ".properties")) {
                 properties.store(out, "Properties: " + filename);
             } catch (IOException ignored) {
@@ -143,7 +142,7 @@ public class PropertiesService {
 
     public String getString(Properties properties, String propName) throws PropertyNotFoundException {
         String[] pieces = propName.split("/");
-        if ( pieces.length > 1 ) {
+        if (pieces.length > 1) {
             properties = loadProperties(pieces[0], true);
             propName = pieces[1];
         }
@@ -264,7 +263,7 @@ public class PropertiesService {
         String className = "";
         try {
             className = packageName + getString(properties, propName);
-            return (Class<T>)Class.forName(className);
+            return (Class<T>) Class.forName(className);
         } catch (ClassNotFoundException e) {
             throw new PropertyNotFoundException("Could not find class '" + className + "'");
         }
@@ -316,8 +315,8 @@ public class PropertiesService {
         Properties properties = applicationProps();
 
         Annotation group = object.getClass().getAnnotation(PropertyGroup.class);
-        if ( group!=null ) {
-            properties = getProps(((PropertyGroup)group).value());
+        if (group != null) {
+            properties = getProps(((PropertyGroup) group).value());
         }
 
         Map<String, String> result = new HashMap<>();
@@ -328,32 +327,20 @@ public class PropertiesService {
             if (a != null) {
                 String propName = ((Property) a).value();
                 try {
-                    f.setAccessible(true);
-                    if (f.getType() == String.class) {
-                        if (propName.equals("IP")) {
-                            f.set(object, getIp());
-                        } else {
-                            f.set(object, getString(properties, propName));
-                        }
-                    } else if (f.getType() == int.class || f.getType() == Integer.class) {
-                        f.set(object, getInt(properties, propName));
-                    } else if (f.getType() == boolean.class || f.getType() == Boolean.class) {
-                        f.set(object, getBoolean(properties, propName));
-                    } else if (f.getType() == RGB.class) {
-                        f.set(object, getRGB(properties, propName));
-                    } else if (f.getType()==Class.class) {
-                        f.set(object, getClass(properties, propName));
+                    if (propName.equals("IP")) {
+                        f.set(object, getIp());
                     } else {
-                        getString(properties, propName);
+                        String stringValue = getString(properties, propName);
+                        ReflectionUtils.reflectiveSet(object, f, stringValue);
+                        Object value = f.get(object);
+                        if (value == null) {
+                            throw new PropertyNotFoundException("Null value");
+                        }
+                        result.put(propName, value.toString());
                     }
-                    Object value = f.get(object);
-                    if (value == null) {
-                        throw new PropertyNotFoundException("Null value");
-                    }
-                    result.put(propName, value.toString());
                 } catch (IllegalAccessException | PropertyNotFoundException e) {
                     try {
-                        if ( f.get(object)!=null ) {
+                        if (f.get(object) != null) {
                             setProperty(properties, propName, f.get(object).toString());
                         } else {
                             sb.append(propName).append("\n");

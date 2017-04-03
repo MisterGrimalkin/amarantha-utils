@@ -8,6 +8,7 @@ import net.amarantha.utils.properties.PropertyGroup;
 import net.amarantha.utils.shell.Utility;
 
 import javax.sound.midi.*;
+
 import static net.amarantha.utils.shell.Utility.log;
 
 @Singleton
