@@ -1,6 +1,9 @@
 package net.amarantha.utils.properties;
 
 import net.amarantha.utils.colour.RGB;
+import net.amarantha.utils.properties.entity.Property;
+import net.amarantha.utils.properties.entity.PropertyGroup;
+import net.amarantha.utils.properties.entity.PropertyNotFoundException;
 import net.amarantha.utils.reflection.ReflectionUtils;
 
 import javax.inject.Singleton;
@@ -74,13 +77,11 @@ public class PropertiesService {
         }
 
         propertySets.put(filename, properties);
-        dirty.put(filename, false);
 
         return properties;
     }
 
     protected Map<String, Properties> propertySets = new HashMap<>();
-    private Map<String, Boolean> dirty = new HashMap<>();
 
     ////////////////
     // Set & Save //

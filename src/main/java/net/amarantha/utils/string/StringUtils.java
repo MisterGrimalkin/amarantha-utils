@@ -7,8 +7,10 @@ import java.util.Map;
 
 public class StringUtils {
 
+    private static final String DEFAULT_SEPARATOR = ";";
+
     public static List<String> asList(String input) {
-        return asList(input, ",");
+        return asList(input, DEFAULT_SEPARATOR);
     }
 
     public static List<String> asList(String input, String separator) {
@@ -21,7 +23,7 @@ public class StringUtils {
     }
 
     public static Map<String, String> asMap(String input) {
-        return asMap(input, ",");
+        return asMap(input, DEFAULT_SEPARATOR);
     }
 
     public static Map<String, String> asMap(String input, String separator) {

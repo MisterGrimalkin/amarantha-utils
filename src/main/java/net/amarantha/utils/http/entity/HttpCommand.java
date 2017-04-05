@@ -35,7 +35,7 @@ public class HttpCommand {
         String[] pieces = input.split("\\|");
         if ( pieces.length > 1 ) {
             String method = pieces[0].toUpperCase();
-            String fullURL = pieces[1];
+            String fullURL = pieces[1].replaceAll("http://", "");
             String body = pieces.length==3 ? pieces[2] : "";
             String[] hostAndPort = fullURL.split("/")[0].split(":");
             String host = hostAndPort[0];
@@ -157,20 +157,20 @@ public class HttpCommand {
         return
                 method + "|http://" + getFullHost() + "/" + getFullPath()
                         + (paramStr.isEmpty() ? "" : "?" + paramStr )
-                        + (payload.isEmpty()  ? "" : "|" + payload + "}" );
+                        + (payload.isEmpty()  ? "" : "|" + payload );
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+
         HttpCommand that = (HttpCommand) o;
+
         if (port != that.port) return false;
         if (method != null ? !method.equals(that.method) : that.method != null) return false;
         if (host != null ? !host.equals(that.host) : that.host != null) return false;
-        String thisFullPath = getFullPath();
-        String thatFullPath = that.getFullPath();
-        if (getFullPath()!=null ? !getFullPath().equals(that.getFullPath()) : that.getFullPath()!=null ) return false;
+        if (getFullPath() != null ? !getFullPath().equals(that.getFullPath()) : that.getFullPath() != null) return false;
         if (params != null ? !params.equals(that.params) : that.params != null) return false;
         return payload != null ? payload.equals(that.payload) : that.payload == null;
     }

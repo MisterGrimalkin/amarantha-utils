@@ -15,18 +15,23 @@ import java.util.TimerTask;
 
 import static net.amarantha.utils.http.entity.HttpCommand.GET;
 import static net.amarantha.utils.http.entity.HttpCommand.POST;
+import static net.amarantha.utils.shell.Utility.log;
 
 @Singleton
-public class HttpServiceImpl implements HttpService {
+public class HttpServiceImpl extends HttpService {
+
+    public HttpServiceImpl() {
+        super("HTTP Service");
+    }
 
     @Override
     public String fire(HttpCommand command) {
         switch ( command.getMethod().toUpperCase() ) {
             case GET:
-                System.out.println(">>> GET http://"+command.getFullHost()+"/"+command.getFullPath());
+                log("--> GET http://"+command.getFullHost()+"/"+command.getFullPath());
                 return get(command.getHost(), command.getPort(), command.getFullPath(), command.getParamsArray());
             case POST:
-                System.out.println(">>> POST http://"+command.getFullHost()+"/"+command.getFullPath());
+                log("--> POST http://"+command.getFullHost()+"/"+command.getFullPath());
                 return post(command.getHost(), command.getPort(), command.getFullPath(), command.getPayload(), command.getParamsArray());
         }
         return null;
@@ -36,11 +41,11 @@ public class HttpServiceImpl implements HttpService {
     public void fireAsync(HttpCallback callback, HttpCommand command) {
         switch ( command.getMethod().toUpperCase() ) {
             case GET:
-                System.out.println(">|> GET http://"+command.getFullHost()+"/"+command.getFullPath());
+                log("~~> GET http://"+command.getFullHost()+"/"+command.getFullPath());
                 getAsync(callback, command.getHost(), command.getPort(), command.getFullPath(), command.getParamsArray());
                 break;
             case POST:
-                System.out.println(">|> POST http://"+command.getFullHost()+"/"+command.getFullPath());
+                log("~~> POST http://"+command.getFullHost()+"/"+command.getFullPath());
                 postAsync(callback, command.getHost(), command.getPort(), command.getFullPath(), command.getPayload(), command.getParamsArray());
                 break;
         }
@@ -53,8 +58,7 @@ public class HttpServiceImpl implements HttpService {
         try {
             response = getEndpoint(host+":"+port, path, params).get();
             result = response.readEntity(String.class);
-        } catch ( Exception e ) {
-//            System.out.println(host + ": " + e.getMessage());
+        } catch ( Exception ignored ) {
         } finally {
             if ( response!=null ) response.close();
         }
@@ -69,8 +73,8 @@ public class HttpServiceImpl implements HttpService {
                 Response response = null;
                 try {
                     response = getEndpoint(host+":"+port, path, params).get();
-                } catch ( Exception e ) {
-                    System.out.println(host + ": " + e.getMessage());
+                } catch ( Exception ignored
+                        ) {
                 } finally {
                     if ( response!=null ) response.close();
                 }
@@ -88,8 +92,7 @@ public class HttpServiceImpl implements HttpService {
         try {
             response = getEndpoint(host+":"+port, path, params).post(Entity.entity(payload, MediaType.TEXT_PLAIN));
             result = response.readEntity(String.class);
-        } catch ( Exception e ) {
-//            System.out.println(host + ": " + e.getMessage());
+        } catch ( Exception ignored ) {
         } finally {
             if ( response!=null ) response.close();
         }
@@ -104,8 +107,7 @@ public class HttpServiceImpl implements HttpService {
                 Response response = null;
                 try {
                     response = getEndpoint(host+":"+port, path, params).post(Entity.entity(payload, MediaType.TEXT_PLAIN));
-                } catch ( Exception e ) {
-//                    System.out.println(host + ": " + e.getMessage());
+                } catch ( Exception ignored ) {
                 } finally {
                     if ( response!=null ) response.close();
                 }
@@ -126,4 +128,13 @@ public class HttpServiceImpl implements HttpService {
         return endpoint.request();
     }
 
+    @Override
+    protected void onStart() {
+
+    }
+
+    @Override
+    protected void onStop() {
+
+    }
 }

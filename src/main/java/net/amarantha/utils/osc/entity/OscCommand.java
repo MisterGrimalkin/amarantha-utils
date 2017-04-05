@@ -1,4 +1,4 @@
-package net.amarantha.utils.osc;
+package net.amarantha.utils.osc.entity;
 
 import java.util.Arrays;
 import java.util.LinkedList;

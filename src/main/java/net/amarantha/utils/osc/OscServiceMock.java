@@ -1,11 +1,18 @@
 package net.amarantha.utils.osc;
 
+import net.amarantha.utils.osc.entity.OscCommand;
+import net.amarantha.utils.osc.entity.OscListener;
+
 import java.util.*;
 
-public class OscServiceMock implements OscService {
+public class OscServiceMock extends OscService {
 
     private OscCommand lastCommand;
     private Map<String, List<OscListener>> allListeners = new HashMap<>();
+
+    public OscServiceMock() {
+        super("OSC Service Mock");
+    }
 
     @Override
     public void send(OscCommand command) {
@@ -40,4 +47,13 @@ public class OscServiceMock implements OscService {
     }
 
 
+    @Override
+    protected void onStart() {
+
+    }
+
+    @Override
+    protected void onStop() {
+
+    }
 }

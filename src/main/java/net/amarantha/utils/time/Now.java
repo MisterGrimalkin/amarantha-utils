@@ -11,8 +11,6 @@ import static java.time.ZoneOffset.UTC;
 @Singleton
 public class Now {
 
-    private boolean lockMode;
-
     public LocalDateTime now() {
         if ( offset==null ) {
             return LocalDateTime.now();
@@ -63,8 +61,5 @@ public class Now {
         pushSeconds(minutes * 60);
     }
 
-    public void setLockMode(boolean lockMode) {
-        this.lockMode = lockMode;
-    }
 
 }

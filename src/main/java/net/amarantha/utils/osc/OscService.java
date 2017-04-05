@@ -1,9 +1,17 @@
 package net.amarantha.utils.osc;
 
-public interface OscService {
+import net.amarantha.utils.osc.entity.OscCommand;
+import net.amarantha.utils.osc.entity.OscListener;
+import net.amarantha.utils.service.AbstractService;
 
-    void send(OscCommand command);
+public abstract class OscService extends AbstractService {
 
-    void onReceive(int port, String address, OscListener listener);
+    public OscService(String name) {
+        super(name);
+    }
+
+    public abstract void send(OscCommand command);
+
+    public abstract void onReceive(int port, String address, OscListener listener);
 
 }

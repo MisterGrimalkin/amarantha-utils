@@ -1,20 +1,25 @@
 package net.amarantha.utils.midi;
 
 import com.google.inject.Singleton;
+import net.amarantha.utils.midi.entity.MidiCommand;
 
 @Singleton
-public class MidiServiceMock implements MidiService {
+public class MidiServiceMock extends MidiService {
 
     private boolean deviceOpen = false;
     private MidiCommand lastMidiCommand = null;
 
+    public MidiServiceMock() {
+        super("MIDI Service Mock");
+    }
+
     @Override
-    public void start() {
+    public void onStart() {
         deviceOpen = true;
     }
 
     @Override
-    public void stop() {
+    public void onStop() {
         deviceOpen = false;
     }
 

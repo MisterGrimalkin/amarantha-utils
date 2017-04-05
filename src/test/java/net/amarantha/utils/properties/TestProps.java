@@ -1,6 +1,7 @@
 package net.amarantha.utils.properties;
 
 import net.amarantha.utils.colour.RGB;
+import net.amarantha.utils.properties.entity.Property;
 
 class TestProps {
 

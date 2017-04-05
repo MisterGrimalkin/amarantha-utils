@@ -2,9 +2,10 @@ package net.amarantha.utils.midi;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import net.amarantha.utils.midi.entity.MidiCommand;
 import net.amarantha.utils.properties.PropertiesService;
-import net.amarantha.utils.properties.Property;
-import net.amarantha.utils.properties.PropertyGroup;
+import net.amarantha.utils.properties.entity.Property;
+import net.amarantha.utils.properties.entity.PropertyGroup;
 import net.amarantha.utils.shell.Utility;
 
 import javax.sound.midi.*;
@@ -13,18 +14,20 @@ import static net.amarantha.utils.shell.Utility.log;
 
 @Singleton
 @PropertyGroup("Services")
-public class MidiServiceImpl implements MidiService {
+public class MidiServiceImpl extends MidiService {
 
     @Inject private PropertiesService props;
 
     @Property("MidiDevice") private String deviceName = "USB Uno MIDI Interface";
 
+    public MidiServiceImpl() {
+        super("MIDI Service");
+    }
+
     private MidiDevice midiOutDevice;
 
     @Override
-    public void start() {
-        log("Starting MIDI Service...");
-        props.injectPropertiesOrExit(this);
+    public void onStart() {
         try {
             connectDevice(deviceName);
             midiOutDevice = getMidiOutDevice(deviceName);
@@ -35,8 +38,7 @@ public class MidiServiceImpl implements MidiService {
     }
 
     @Override
-    public void stop() {
-        log("Stopping MIDI Service...");
+    public void onStop() {
         if ( midiOutDevice !=null ) {
             midiOutDevice.close();
         }

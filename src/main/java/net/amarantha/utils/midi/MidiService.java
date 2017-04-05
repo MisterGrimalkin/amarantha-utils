@@ -1,13 +1,16 @@
 package net.amarantha.utils.midi;
 
-public interface MidiService {
+import net.amarantha.utils.midi.entity.MidiCommand;
+import net.amarantha.utils.service.AbstractService;
 
-    void start();
+public abstract class MidiService extends AbstractService {
 
-    void stop();
+    public MidiService(String name) {
+        super(name);
+    }
 
-    void send(MidiCommand midiCommand);
+    public abstract void send(MidiCommand midiCommand);
 
-    void send(int command, int channel, int data1, int data2);
+    public abstract void send(int command, int channel, int data1, int data2);
 
 }

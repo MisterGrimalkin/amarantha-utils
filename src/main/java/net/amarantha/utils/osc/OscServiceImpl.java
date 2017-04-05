@@ -3,18 +3,26 @@ package net.amarantha.utils.osc;
 import com.illposed.osc.OSCMessage;
 import com.illposed.osc.OSCPortIn;
 import com.illposed.osc.OSCPortOut;
+import net.amarantha.utils.osc.entity.OscCommand;
+import net.amarantha.utils.osc.entity.OscListener;
 
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class OscServiceImpl implements OscService {
+import static net.amarantha.utils.shell.Utility.log;
+
+public class OscServiceImpl extends OscService {
+
+    public OscServiceImpl() {
+        super("OSC Service");
+    }
 
     @Override
     public void send(OscCommand command) {
         try {
-            System.out.println(">>> OSC " + command.toString());
+            log("--> OSC " + command.toString());
             OSCPortOut sender = new OSCPortOut(InetAddress.getByName(command.getHost()), command.getPort());
             OSCMessage msg = new OSCMessage("/"+command.getAddress(), command.getArguments());
             sender.send(msg);
@@ -45,4 +53,13 @@ public class OscServiceImpl implements OscService {
         return result;
     }
 
+    @Override
+    protected void onStart() {
+
+    }
+
+    @Override
+    protected void onStop() {
+
+    }
 }

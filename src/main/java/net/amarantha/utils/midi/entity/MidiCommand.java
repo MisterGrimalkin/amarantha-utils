@@ -1,4 +1,6 @@
-package net.amarantha.utils.midi;
+package net.amarantha.utils.midi.entity;
+
+import net.amarantha.utils.midi.MidiService;
 
 import javax.sound.midi.ShortMessage;
 import java.lang.reflect.Field;
@@ -22,7 +24,12 @@ public class MidiCommand {
     public static MidiCommand fromString(String input) {
         String[] pieces = input.split("\\|");
         if ( pieces.length==4 ) {
-            int command = parseCommandType(pieces[0]);
+            int command;
+            try {
+                command = Integer.parseInt(pieces[0]);
+            } catch ( NumberFormatException e ) {
+                command = parseCommandType(pieces[0]);
+            }
             int channel = Integer.parseInt(pieces[1]);
             int data1 = Integer.parseInt(pieces[2]);
             int data2 = Integer.parseInt(pieces[3]);
@@ -81,7 +88,7 @@ public class MidiCommand {
 
     @Override
     public String toString() {
-        return "[MidiCommand:" + command +"," + channel + "," + data1 + "," + data2 + "]";
+        return command +"|" + channel + "|" + data1 + "|" + data2;
     }
 
     @Override
