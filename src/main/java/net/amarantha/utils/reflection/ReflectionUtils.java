@@ -40,6 +40,8 @@ public class ReflectionUtils {
                 field.set(object, value);
             } else if (type == int.class || type == Integer.class) {
                 field.set(object, Integer.parseInt(value));
+            } else if (type == long.class || type == Long.class) {
+                field.set(object, Long.parseLong(value));
             } else if (type == double.class || type == Double.class) {
                 field.set(object, Double.parseDouble(value));
             } else if (type == boolean.class || type == Boolean.class) {
