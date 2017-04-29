@@ -9,10 +9,10 @@ import net.amarantha.utils.reflection.ReflectionUtils;
 import javax.inject.Singleton;
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.BiFunction;
 
 @Singleton
 public class PropertiesService {
@@ -302,8 +302,12 @@ public class PropertiesService {
     ////////////////////////
 
     public Map<String, String> injectPropertiesOrExit(Object object) {
+        return injectPropertiesOrExit(object, null);
+    }
+
+    public Map<String, String> injectPropertiesOrExit(Object object, final BiFunction<Class<?>, String, Object> customType) {
         try {
-            return injectProperties(object);
+            return injectProperties(object, customType);
         } catch (PropertyNotFoundException e) {
             System.out.println(e.getMessage());
             System.exit(1);
@@ -312,27 +316,31 @@ public class PropertiesService {
     }
 
     public Map<String, String> injectProperties(Object object) throws PropertyNotFoundException {
+        return injectProperties(object, null);
+    }
 
-        Properties properties = applicationProps();
+    public Map<String, String> injectProperties(Object object, final BiFunction<Class<?>, String, Object> customType) throws PropertyNotFoundException {
 
+        final Properties properties;
         Annotation group = object.getClass().getAnnotation(PropertyGroup.class);
         if (group != null) {
             properties = getProps(((PropertyGroup) group).value());
+        } else {
+            properties = applicationProps();
         }
 
         Map<String, String> result = new HashMap<>();
         StringBuilder sb = new StringBuilder();
 
-        for (Field f : object.getClass().getDeclaredFields()) {
-            Annotation a = f.getAnnotation(Property.class);
+        ReflectionUtils.iterateAnnotatedFields(object, Property.class, (f, a)-> {
             if (a != null) {
-                String propName = ((Property) a).value();
+                String propName = a.value();
                 try {
                     if (propName.equals("IP")) {
                         f.set(object, getIp());
                     } else {
                         String stringValue = getString(properties, propName);
-                        ReflectionUtils.reflectiveSet(object, f, stringValue);
+                        ReflectionUtils.reflectiveSet(object, f, stringValue, customType);
                         Object value = f.get(object);
                         if (value == null) {
                             throw new PropertyNotFoundException("Null value");
@@ -351,7 +359,7 @@ public class PropertiesService {
                     }
                 }
             }
-        }
+        });
 
         if (!sb.toString().isEmpty()) {
             throw new PropertyNotFoundException("The following properties could not be loaded from " + APP_FILENAME + ":\n" + sb.toString());

@@ -10,6 +10,15 @@ public class OscCommand {
     private final int port;
     private final String address;
     private final List<Object> arguments;
+    private boolean silent = false;
+
+    public void setSilent(boolean silent) {
+        this.silent = silent;
+    }
+
+    public boolean isSilent() {
+        return silent;
+    }
 
     public OscCommand(String host, int port, String address, Object... arguments) {
         this.host = host;

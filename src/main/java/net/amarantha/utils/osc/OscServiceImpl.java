@@ -22,7 +22,9 @@ public class OscServiceImpl extends OscService {
     @Override
     public void send(OscCommand command) {
         try {
-            log("--> OSC " + command.toString());
+            if ( !command.isSilent() ) {
+                log("--> OSC " + command.toString());
+            }
             OSCPortOut sender = new OSCPortOut(InetAddress.getByName(command.getHost()), command.getPort());
             OSCMessage msg = new OSCMessage("/"+command.getAddress(), command.getArguments());
             sender.send(msg);
