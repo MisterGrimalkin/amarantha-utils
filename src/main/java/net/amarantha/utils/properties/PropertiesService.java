@@ -1,5 +1,7 @@
 package net.amarantha.utils.properties;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
+import com.esotericsoftware.yamlbeans.YamlWriter;
 import net.amarantha.utils.colour.RGB;
 import net.amarantha.utils.properties.entity.Property;
 import net.amarantha.utils.properties.entity.PropertyGroup;
@@ -11,11 +13,24 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import static net.amarantha.utils.shell.Utility.log;
+
+@SuppressWarnings("WeakerAccess")
 @Singleton
 public class PropertiesService {
+
+    ////////////////////
+    // Static Factory //
+    ////////////////////
+
+    private static PropertiesService service;
+
+    public static PropertiesService get() {
+        return service==null ? service = new PropertiesService(SETTINGS_FILENAME) : service;
+    }
 
     ////////////////////////////
     // Command Line Arguments //
@@ -30,243 +45,259 @@ public class PropertiesService {
     public static void processArgs(String[] args, String helpText) {
         for (String arg : args) {
             if ("-help".equals(arg) || "-h".equals(arg)) {
-                System.out.println(helpText);
+                log(helpText);
                 System.exit(0);
             }
             if (arg.length() > 1 && arg.charAt(0) == '-') {
                 String[] pieces = arg.substring(1).split("=");
                 commandLineArgs.put(pieces[0], pieces.length == 2 ? pieces[1] : "");
             } else {
-                System.out.println("Bad Argument: " + arg);
+                log("Bad Argument: " + arg);
             }
         }
     }
 
-    static void printArgs() {
-        commandLineArgs.forEach((k, v) -> System.out.println(k + (v.isEmpty() ? " SET" : " = " + v)));
-    }
-
-    public boolean isArgumentPresent(String argName) {
+    public static boolean isArgumentPresent(String argName) {
         return commandLineArgs.containsKey(argName);
     }
 
-    public String getArgumentValue(String argName) {
+    public static String getArgumentValue(String argName) {
         return commandLineArgs.get(argName);
     }
 
-    //////////////////////
-    // Properties Files //
-    //////////////////////
+    static void printArgs() {
+        commandLineArgs.forEach((k, v) -> log(k + (v.isEmpty() ? " SET" : " = " + v)));
+    }
 
-    protected Properties loadProperties(String filename, boolean create) {
+    /////////////////
+    // Load & Save //
+    /////////////////
 
-        Properties properties = new Properties();
-        File propsFile = new File("config/" + filename + ".properties");
+    protected final String filename;
+    protected Map<String, Map> propsMap;
 
-        if (propsFile.exists()) {
-            try (FileInputStream in = new FileInputStream(propsFile)) {
-                properties.load(in);
-            } catch (IOException ignored) {
-            }
+    PropertiesService(String filename) {
+        this.filename = filename;
+        loadFromFile();
+    }
 
-        } else if (create) {
-            try (FileWriter writer = new FileWriter(propsFile)) {
-                writer.write("# Application Properties");
-            } catch (IOException ignored) {
-            }
+    protected void loadFromFile() {
+        try (FileReader reader = new FileReader(filename)) {
+            YamlReader yaml = new YamlReader(reader);
+            //noinspection unchecked
+            propsMap = (Map<String, Map>) yaml.read();
+        } catch (FileNotFoundException e) {
+            propsMap = new HashMap<>();
+            propsMap.put(GENERAL, new HashMap());
+            saveToFile();
+        } catch (IOException e) {
+            log("Error reading settings file '"+filename+"'.\n" + e.getMessage());
+            System.exit(1);
         }
-
-        propertySets.put(filename, properties);
-
-        return properties;
-    }
-
-    protected Map<String, Properties> propertySets = new HashMap<>();
-
-    ////////////////
-    // Set & Save //
-    ////////////////
-
-    private Properties applicationProps() {
-        return getProps("application");
-    }
-
-    private Properties defaultProps() {
-        return getProps("default");
-    }
-
-    private Properties getProps(String filename) {
-        Properties result = propertySets.get(filename);
-        if (result == null) {
-            result = loadProperties(filename, true);
+        if ( propsMap==null ) {
+            propsMap = new HashMap<>();
         }
-        return result;
     }
 
-    public void setProperty(String propName, String value) {
-        setProperty(applicationProps(), propName, value);
+    protected void saveToFile() {
+        try (FileWriter writer = new FileWriter(filename)) {
+            YamlWriter yaml = new YamlWriter(writer);
+            yaml.write(propsMap);
+            yaml.close();
+        } catch (IOException e) {
+            log("Error writing settings file '"+filename+"'.\n" + e.getMessage());
+            System.exit(1);
+        }
     }
 
-    public void setProperty(Properties properties, String propName, String value) {
-        if (PLACEHOLDER.equals(value)) {
+    /////////
+    // Set //
+    /////////
+
+    public void set(String key, Object value) {
+        set(GENERAL, key, value);
+    }
+
+    public void set(String groupName, String key, Object value) {
+        if ( value==null ) {
+            throw new IllegalArgumentException("Cannot set property '" + groupName + "/" + key + "' to null.");
+        }
+        if ( PLACEHOLDER.equals(value.toString()) ) {
             throw new IllegalArgumentException("That value is the placeholder, sorry!");
         }
-        String[] pieces = propName.split("/");
-        if (pieces.length > 1) {
-            properties = loadProperties(pieces[0], true);
-            propName = pieces[1];
+        String valueString;
+        if ( Class.class.isAssignableFrom(value.getClass()) ) {
+            valueString = ((Class<?>)value).getName();
+        } else {
+            valueString = value.toString();
         }
-        properties.setProperty(propName, value);
-        saveProperties();
+        Map group = propsMap.get(groupName);
+        if ( group==null ) {
+            group = new HashMap<String, String>();
+            propsMap.put(groupName, group);
+        }
+        //noinspection unchecked
+        group.put(key, valueString);
+        saveToFile();
     }
 
-    protected void saveProperties() {
-        propertySets.forEach((filename, properties) -> {
-            try (FileOutputStream out = new FileOutputStream("config/" + filename + ".properties")) {
-                properties.store(out, "Properties: " + filename);
-            } catch (IOException ignored) {
-            }
-        });
+    ///////////
+    // Query //
+    ///////////
+
+    public boolean isSet(String key) {
+        return isSet(GENERAL, key);
+    }
+
+    public boolean isSet(String groupName, String key) {
+        Map group = propsMap.get(groupName);
+        return group != null && group.containsKey(key);
+    }
+
+    /////////
+    // Get //
+    /////////
+
+    public <T> T get(String groupName, String key, Function<String, T> parser) throws PropertyNotFoundException {
+        Map group = propsMap.get(groupName);
+        if ( group==null ) {
+            throw new PropertyNotFoundException(groupName, key, "Property group '" + groupName + "' not found.");
+        }
+        Object obj = group.get(key);
+        if ( obj==null ) {
+            throw new PropertyNotFoundException(groupName, key);
+        }
+        String str = obj.toString();
+        if (str == null || "".equals(str) || PLACEHOLDER.equals(str)) {
+            throw new PropertyNotFoundException(groupName, key);
+        }
+        return parser.apply(str);
+    }
+
+    public <T> T getOrDefault(String groupName, String key, T def, Function<String, T> parser) {
+        try {
+            return get(groupName, key, parser);
+        } catch (PropertyNotFoundException e) {
+            set(groupName, key, def);
+            return def;
+        }
     }
 
     ////////////////
     // Get String //
     ////////////////
 
-    public String getString(String propName) throws PropertyNotFoundException {
-        return getString(applicationProps(), propName);
+    public String getString(String key) throws PropertyNotFoundException {
+        return getString(GENERAL, key);
     }
 
-    public String getString(String propName, String defaultValue) {
-        return getString(applicationProps(), propName, defaultValue);
+    public String getString(String groupName, String key) throws PropertyNotFoundException {
+        return get(groupName, key, String::toString);
     }
 
-    public String getString(Properties properties, String propName) throws PropertyNotFoundException {
-        String[] pieces = propName.split("/");
-        if (pieces.length > 1) {
-            properties = loadProperties(pieces[0], true);
-            propName = pieces[1];
-        }
-        String propStr = properties.getProperty(propName);
-        if (propStr == null || PLACEHOLDER.equals(propStr)) {
-            propStr = defaultProps().getProperty(propName);
-            if (propStr == null) {
-                properties.setProperty(propName, PLACEHOLDER);
-                saveProperties();
-                throw new PropertyNotFoundException("Property '" + propName + "' not found");
-            } else {
-                setProperty(properties, propName, propStr);
-            }
-        }
-        return propStr;
+    public String getStringOrDefault(String key, String def) {
+        return getStringOrDefault(GENERAL, key, def);
     }
 
-    public String getString(Properties properties, String propName, String defaultValue) {
-        try {
-            return getString(properties, propName);
-        } catch (PropertyNotFoundException e) {
-            setProperty(properties, propName, defaultValue);
-            return defaultValue;
-        }
+    public String getStringOrDefault(String groupName, String key, String def) {
+        return getOrDefault(groupName, key, def, String::toString);
     }
 
     /////////////////
     // Get Boolean //
     /////////////////
 
-    public Boolean getBoolean(String propName) throws PropertyNotFoundException {
-        return getBoolean(applicationProps(), propName);
+    public Boolean getBoolean(String key) throws PropertyNotFoundException {
+        return getBoolean(GENERAL, key);
     }
 
-    public Boolean getBoolean(String propName, Boolean defaultValue) throws PropertyNotFoundException {
-        return getBoolean(applicationProps(), propName, defaultValue);
+    public Boolean getBoolean(String groupName, String key) throws PropertyNotFoundException {
+        return get(groupName, key, Boolean::parseBoolean);
     }
 
-    public Boolean getBoolean(Properties properties, String propName) throws PropertyNotFoundException {
-        return Boolean.parseBoolean(getString(properties, propName));
+    public Boolean getBooleanOrDefault(String key, Boolean def) {
+        return getBooleanOrDefault(GENERAL, key, def);
     }
 
-    public Boolean getBoolean(Properties properties, String propName, Boolean defaultValue) {
-        try {
-            return getBoolean(properties, propName);
-        } catch (PropertyNotFoundException e) {
-            setProperty(propName, defaultValue.toString());
-            saveProperties();
-            return defaultValue;
-        }
+    public Boolean getBooleanOrDefault(String groupName, String key, Boolean def) {
+        return getOrDefault(groupName, key, def, Boolean::parseBoolean);
     }
 
     /////////////////
     // Get Integer //
     /////////////////
 
-    public Integer getInt(String propName) throws PropertyNotFoundException {
-        return getInt(applicationProps(), propName);
+    public Integer getInt(String key) throws PropertyNotFoundException {
+        return getInt(GENERAL, key);
     }
 
-    public Integer getInt(String propName, Integer defaultValue) {
-        return getInt(applicationProps(), propName, defaultValue);
+    public Integer getInt(String groupName, String key) throws PropertyNotFoundException {
+        return get(groupName, key, Integer::parseInt);
     }
 
-    private Integer getInt(Properties properties, String propName) throws PropertyNotFoundException {
-        try {
-            return Integer.parseInt(getString(properties, propName));
-        } catch (NumberFormatException e) {
-            throw new PropertyNotFoundException("Property '" + propName + "' should be a number");
-        }
+    public Integer getIntOrDefault(String key, Integer def) {
+        return getIntOrDefault(GENERAL, key, def);
     }
 
-    private Integer getInt(Properties properties, String propName, Integer defaultValue) {
-        try {
-            return getInt(properties, propName);
-        } catch (PropertyNotFoundException e) {
-            setProperty(propName, defaultValue.toString());
-            saveProperties();
-            return defaultValue;
-        }
+    public Integer getIntOrDefault(String groupName, String key, Integer def) {
+        return getOrDefault(groupName, key, def, Integer::parseInt);
+    }
+
+    ////////////////
+    // Get Double //
+    ////////////////
+
+    public Double getDouble(String key) throws PropertyNotFoundException {
+        return getDouble(GENERAL, key);
+    }
+
+    public Double getDouble(String groupName, String key) throws PropertyNotFoundException {
+        return get(groupName, key, Double::parseDouble);
+    }
+
+    public Double getDoubleOrDefault(String key, Double def) {
+        return getDoubleOrDefault(GENERAL, key, def);
+    }
+
+    public Double getDoubleOrDefault(String groupName, String key, Double def) {
+        return getOrDefault(groupName, key, def, Double::parseDouble);
     }
 
     /////////////
     // Get RGB //
     /////////////
 
-    public RGB getRGB(String propName) throws PropertyNotFoundException {
-        return getRGB(applicationProps(), propName);
+    public RGB getRgb(String key) throws PropertyNotFoundException {
+        return get(GENERAL, key, RGB::parse);
     }
 
-    public RGB getRGB(Properties properties, String propName) throws PropertyNotFoundException {
-        String rgb = getString(properties, propName);
-        try {
-            return RGB.parse(rgb);
-        } catch (NumberFormatException ignored) {
-        }
-        throw new PropertyNotFoundException("Property '" + propName + "' is not a valid RGB colour");
+    public RGB getRgb(String groupName, String key) throws PropertyNotFoundException {
+        return get(groupName, key, RGB::parse);
+    }
+
+    public RGB getRgbOrDefault(String key, RGB def) {
+        return getRgbOrDefault(GENERAL, key, def);
+    }
+
+    public RGB getRgbOrDefault(String groupName, String key, RGB def) {
+        return getOrDefault(groupName, key, def, RGB::parse);
     }
 
     ///////////////
     // Get Class //
     ///////////////
 
-    public <T> Class<T> getClass(String propName) throws PropertyNotFoundException {
-        return getClass(applicationProps(), propName);
+    public <T> Class<T> getClass(String key) throws PropertyNotFoundException {
+        return getClass(GENERAL, key);
     }
 
-    public <T> Class<T> getClass(String propName, String packageName) throws PropertyNotFoundException {
-        return getClass(applicationProps(), propName, packageName);
-    }
-
-    public <T> Class<T> getClass(Properties properties, String propName) throws PropertyNotFoundException {
-        return getClass(properties, propName, "");
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> Class<T> getClass(Properties properties, String propName, String packageName) throws PropertyNotFoundException {
-        String className = "";
+    public <T> Class<T> getClass(String groupName, String key) throws PropertyNotFoundException {
+        String className = getString(groupName, key);
         try {
-            className = packageName + getString(properties, propName);
+            //noinspection unchecked
             return (Class<T>) Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new PropertyNotFoundException("Could not find class '" + className + "'");
+            throw new PropertyNotFoundException(groupName, key);
         }
     }
 
@@ -309,7 +340,7 @@ public class PropertiesService {
         try {
             return injectProperties(object, customType);
         } catch (PropertyNotFoundException e) {
-            System.out.println(e.getMessage());
+            log(e.getMessage());
             System.exit(1);
         }
         return null;
@@ -321,12 +352,12 @@ public class PropertiesService {
 
     public Map<String, String> injectProperties(Object object, final BiFunction<Class<?>, String, Object> customType) throws PropertyNotFoundException {
 
-        final Properties properties;
+        String groupName;
         Annotation group = object.getClass().getAnnotation(PropertyGroup.class);
         if (group != null) {
-            properties = getProps(((PropertyGroup) group).value());
+            groupName = ((PropertyGroup)group).value();
         } else {
-            properties = applicationProps();
+            groupName = GENERAL;
         }
 
         Map<String, String> result = new HashMap<>();
@@ -334,43 +365,42 @@ public class PropertiesService {
 
         ReflectionUtils.iterateAnnotatedFields(object, Property.class, (f, a)-> {
             if (a != null) {
-                String propName = a.value();
+                String propKey = a.value();
                 try {
-                    if (propName.equals("IP")) {
+                    if (propKey.equals("IP")) {
                         f.set(object, getIp());
                     } else {
-                        String stringValue = getString(properties, propName);
+                        String stringValue = getString(groupName, propKey);
                         ReflectionUtils.reflectiveSet(object, f, stringValue, customType);
                         Object value = f.get(object);
                         if (value == null) {
-                            throw new PropertyNotFoundException("Null value");
+                            throw new PropertyNotFoundException(groupName, propKey, "Null value");
                         }
-                        result.put(propName, value.toString());
+                        result.put(propKey, value.toString());
                     }
                 } catch (IllegalAccessException | PropertyNotFoundException e) {
                     try {
                         if (f.get(object) != null) {
-                            setProperty(properties, propName, f.get(object).toString());
+                            set(groupName, propKey, f.get(object));
                         } else {
-                            sb.append(propName).append("\n");
+                            sb.append(propKey).append("\n");
                         }
                     } catch (IllegalAccessException e2) {
-                        sb.append(propName).append("\n");
+                        sb.append(propKey).append("\n");
                     }
                 }
             }
         });
 
         if (!sb.toString().isEmpty()) {
-            throw new PropertyNotFoundException("The following properties could not be loaded from " + APP_FILENAME + ":\n" + sb.toString());
+            throw new PropertyNotFoundException(null, null, "The following properties could not be loaded:\n" + sb.toString());
         }
 
         return result;
     }
 
+    private static final String SETTINGS_FILENAME = "settings.yaml";
+    private static final String GENERAL = "General";
     private static final String PLACEHOLDER = "*** Please Set This Value ***";
-
-    private static final String APP_FILENAME = "application";
-    private static final String DEF_FILENAME = "default";
 
 }

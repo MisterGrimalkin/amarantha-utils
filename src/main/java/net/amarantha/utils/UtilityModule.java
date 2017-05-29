@@ -15,7 +15,7 @@ import net.amarantha.utils.osc.OscService;
 import net.amarantha.utils.osc.OscServiceImpl;
 import net.amarantha.utils.osc.OscServiceMock;
 import net.amarantha.utils.properties.PropertiesService;
-import net.amarantha.utils.properties.PropertiesServiceMock;
+import net.amarantha.utils.properties.TransientPropertiesService;
 
 public class UtilityModule extends AbstractModule {
 
@@ -32,13 +32,13 @@ public class UtilityModule extends AbstractModule {
     @Override
     protected void configure() {
         if (live) {
-            bind(PropertiesService.class).in(Scopes.SINGLETON);
+            bind(PropertiesService.class).toInstance(PropertiesService.get());
             bind(FileService.class).to(FileServiceImpl.class).in(Scopes.SINGLETON);
             bind(MidiService.class).to(MidiServiceImpl.class).in(Scopes.SINGLETON);
             bind(HttpService.class).to(HttpServiceImpl.class).in(Scopes.SINGLETON);
             bind(OscService.class).to(OscServiceImpl.class).in(Scopes.SINGLETON);
         } else {
-            bind(PropertiesService.class).to(PropertiesServiceMock.class).in(Scopes.SINGLETON);
+            bind(PropertiesService.class).toInstance(new TransientPropertiesService());
             bind(FileService.class).to(FileServiceMock.class).in(Scopes.SINGLETON);
             bind(MidiService.class).to(MidiServiceMock.class).in(Scopes.SINGLETON);
             bind(HttpService.class).to(HttpServiceMock.class).in(Scopes.SINGLETON);
