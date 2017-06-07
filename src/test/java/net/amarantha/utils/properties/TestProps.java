@@ -3,6 +3,8 @@ package net.amarantha.utils.properties;
 import net.amarantha.utils.colour.RGB;
 import net.amarantha.utils.properties.entity.Property;
 
+import java.util.List;
+
 class TestProps {
 
     @Property("TestString") private String testString;
@@ -12,6 +14,7 @@ class TestProps {
     @Property("TestRGB") private RGB testRGB;
     @Property("TestClass") private Class<?> testClass;
     @Property("TestFromValue") private Class<?> testFromValue = Property.class;
+//    @Property("TestStringList") List<String> testStringList;
 
     public String getTestString() {
         return testString;

@@ -1,11 +1,11 @@
 package net.amarantha.utils.string;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class StringMap {
 
-    private Map<String, String> map = new HashMap<>();
+    private Map<String, String> map = new TreeMap<>();
 
     public StringMap add(String key, String value) {
         map.put(key, value);

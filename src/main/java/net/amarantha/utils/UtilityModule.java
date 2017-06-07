@@ -32,7 +32,7 @@ public class UtilityModule extends AbstractModule {
     @Override
     protected void configure() {
         if (live) {
-            bind(PropertiesService.class).toInstance(PropertiesService.get());
+            bind(PropertiesService.class).toInstance(new PropertiesService("settings.yaml"));
             bind(FileService.class).to(FileServiceImpl.class).in(Scopes.SINGLETON);
             bind(MidiService.class).to(MidiServiceImpl.class).in(Scopes.SINGLETON);
             bind(HttpService.class).to(HttpServiceImpl.class).in(Scopes.SINGLETON);

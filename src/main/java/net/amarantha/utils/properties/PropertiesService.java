@@ -11,8 +11,7 @@ import net.amarantha.utils.reflection.ReflectionUtils;
 import javax.inject.Singleton;
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -22,64 +21,17 @@ import static net.amarantha.utils.shell.Utility.log;
 @Singleton
 public class PropertiesService {
 
-    ////////////////////
-    // Static Factory //
-    ////////////////////
-
-    private static PropertiesService service;
-
-    public static PropertiesService get() {
-        return service==null ? service = new PropertiesService(SETTINGS_FILENAME) : service;
+    public PropertiesService(String filename) {
+        this.filename = filename;
+        loadFromFile();
     }
-
-    ////////////////////////////
-    // Command Line Arguments //
-    ////////////////////////////
-
-    private static final Map<String, String> commandLineArgs = new HashMap<>();
-
-    public static void processArgs(String[] args) {
-        processArgs(args, "No help is available.");
-    }
-
-    public static void processArgs(String[] args, String helpText) {
-        for (String arg : args) {
-            if ("-help".equals(arg) || "-h".equals(arg)) {
-                log(helpText);
-                System.exit(0);
-            }
-            if (arg.length() > 1 && arg.charAt(0) == '-') {
-                String[] pieces = arg.substring(1).split("=");
-                commandLineArgs.put(pieces[0], pieces.length == 2 ? pieces[1] : "");
-            } else {
-                log("Bad Argument: " + arg);
-            }
-        }
-    }
-
-    public static boolean isArgumentPresent(String argName) {
-        return commandLineArgs.containsKey(argName);
-    }
-
-    public static String getArgumentValue(String argName) {
-        return commandLineArgs.get(argName);
-    }
-
-    static void printArgs() {
-        commandLineArgs.forEach((k, v) -> log(k + (v.isEmpty() ? " SET" : " = " + v)));
-    }
-
-    /////////////////
-    // Load & Save //
-    /////////////////
 
     protected final String filename;
     protected Map<String, Map> propsMap;
 
-    PropertiesService(String filename) {
-        this.filename = filename;
-        loadFromFile();
-    }
+    /////////////////
+    // Load & Save //
+    /////////////////
 
     protected void loadFromFile() {
         try (FileReader reader = new FileReader(filename)) {
@@ -118,18 +70,19 @@ public class PropertiesService {
         set(GENERAL, key, value);
     }
 
+    @SuppressWarnings("unchecked")
     public void set(String groupName, String key, Object value) {
         if ( value==null ) {
             throw new IllegalArgumentException("Cannot set property '" + groupName + "/" + key + "' to null.");
         }
-        if ( PLACEHOLDER.equals(value.toString()) ) {
-            throw new IllegalArgumentException("That value is the placeholder, sorry!");
-        }
-        String valueString;
+        Object outputObject;
         if ( Class.class.isAssignableFrom(value.getClass()) ) {
-            valueString = ((Class<?>)value).getName();
+            outputObject = ((Class<?>) value).getName();
+        } else if ( Collection.class.isAssignableFrom(value.getClass()) ) {
+            outputObject = new ArrayList<>();
+            ((Collection)value).forEach((e) -> ((List)outputObject).add(e.toString()));
         } else {
-            valueString = value.toString();
+            outputObject = value.toString();
         }
         Map group = propsMap.get(groupName);
         if ( group==null ) {
@@ -137,7 +90,7 @@ public class PropertiesService {
             propsMap.put(groupName, group);
         }
         //noinspection unchecked
-        group.put(key, valueString);
+        group.put(key, outputObject);
         saveToFile();
     }
 
@@ -158,7 +111,8 @@ public class PropertiesService {
     // Get //
     /////////
 
-    public <T> T get(String groupName, String key, Function<String, T> parser) throws PropertyNotFoundException {
+    @SuppressWarnings("unchecked")
+    public <S, T> T get(String groupName, String key, Function<S, T> parser) throws PropertyNotFoundException {
         Map group = propsMap.get(groupName);
         if ( group==null ) {
             throw new PropertyNotFoundException(groupName, key, "Property group '" + groupName + "' not found.");
@@ -167,11 +121,7 @@ public class PropertiesService {
         if ( obj==null ) {
             throw new PropertyNotFoundException(groupName, key);
         }
-        String str = obj.toString();
-        if (str == null || "".equals(str) || PLACEHOLDER.equals(str)) {
-            throw new PropertyNotFoundException(groupName, key);
-        }
-        return parser.apply(str);
+        return parser.apply((S)obj);
     }
 
     public <T> T getOrDefault(String groupName, String key, T def, Function<String, T> parser) {
@@ -181,6 +131,14 @@ public class PropertiesService {
             set(groupName, key, def);
             return def;
         }
+    }
+
+    public <T> List<T> getList(String groupName, String key, Function<String, T> innerParser) throws PropertyNotFoundException {
+        return get(groupName, key, (Function<List<String>, List<T>>) strings -> {
+            List<T> result = new ArrayList<>();
+            strings.forEach((str)->result.add(innerParser.apply(str)));
+            return result;
+        });
     }
 
     ////////////////
@@ -201,6 +159,14 @@ public class PropertiesService {
 
     public String getStringOrDefault(String groupName, String key, String def) {
         return getOrDefault(groupName, key, def, String::toString);
+    }
+
+    public List<String> getStringList(String key) throws PropertyNotFoundException {
+        return getStringList(GENERAL, key);
+    }
+
+    public List<String> getStringList(String groupName, String key) throws PropertyNotFoundException {
+        return getList(groupName, key, String::toString);
     }
 
     /////////////////
@@ -232,7 +198,7 @@ public class PropertiesService {
     }
 
     public Integer getInt(String groupName, String key) throws PropertyNotFoundException {
-        return get(groupName, key, Integer::parseInt);
+        return get(groupName, key, (Function<String,Integer>)Integer::parseInt);
     }
 
     public Integer getIntOrDefault(String key, Integer def) {
@@ -268,7 +234,7 @@ public class PropertiesService {
     /////////////
 
     public RGB getRgb(String key) throws PropertyNotFoundException {
-        return get(GENERAL, key, RGB::parse);
+        return getRgb(GENERAL, key);
     }
 
     public RGB getRgb(String groupName, String key) throws PropertyNotFoundException {
@@ -281,6 +247,14 @@ public class PropertiesService {
 
     public RGB getRgbOrDefault(String groupName, String key, RGB def) {
         return getOrDefault(groupName, key, def, RGB::parse);
+    }
+
+    public List<RGB> getRgbList(String key) throws PropertyNotFoundException {
+        return getRgbList(GENERAL, key);
+    }
+
+    public List<RGB> getRgbList(String groupName, String key) throws PropertyNotFoundException {
+        return getList(groupName, key, RGB::parse);
     }
 
     ///////////////
@@ -297,7 +271,7 @@ public class PropertiesService {
             //noinspection unchecked
             return (Class<T>) Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new PropertyNotFoundException(groupName, key);
+            throw new PropertyNotFoundException(groupName, key, "Class '" + className + "' not found");
         }
     }
 
@@ -352,13 +326,8 @@ public class PropertiesService {
 
     public Map<String, String> injectProperties(Object object, final BiFunction<Class<?>, String, Object> customType) throws PropertyNotFoundException {
 
-        String groupName;
         Annotation group = object.getClass().getAnnotation(PropertyGroup.class);
-        if (group != null) {
-            groupName = ((PropertyGroup)group).value();
-        } else {
-            groupName = GENERAL;
-        }
+        String groupName = group==null ? GENERAL : ((PropertyGroup)group).value();
 
         Map<String, String> result = new HashMap<>();
         StringBuilder sb = new StringBuilder();
@@ -399,8 +368,43 @@ public class PropertiesService {
         return result;
     }
 
-    private static final String SETTINGS_FILENAME = "settings.yaml";
+    ////////////////////////////
+    // Command Line Arguments //
+    ////////////////////////////
+
+    private static final Map<String, String> commandLineArgs = new HashMap<>();
+
+    public static void processArgs(String[] args) {
+        processArgs(args, "No help is available.");
+    }
+
+    public static void processArgs(String[] args, String helpText) {
+        for (String arg : args) {
+            if ("-help".equals(arg) || "-h".equals(arg)) {
+                log(helpText);
+                System.exit(0);
+            }
+            if (arg.length() > 1 && arg.charAt(0) == '-') {
+                String[] pieces = arg.substring(1).split("=");
+                commandLineArgs.put(pieces[0], pieces.length == 2 ? pieces[1] : "");
+            } else {
+                log("Bad Argument: " + arg);
+            }
+        }
+    }
+
+    public static boolean isArgumentPresent(String argName) {
+        return commandLineArgs.containsKey(argName);
+    }
+
+    public static String getArgumentValue(String argName) {
+        return commandLineArgs.get(argName);
+    }
+
+    static void printArgs() {
+        commandLineArgs.forEach((k, v) -> log(k + (v.isEmpty() ? " SET" : " = " + v)));
+    }
+
     private static final String GENERAL = "General";
-    private static final String PLACEHOLDER = "*** Please Set This Value ***";
 
 }

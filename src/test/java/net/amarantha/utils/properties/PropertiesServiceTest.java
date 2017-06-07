@@ -4,7 +4,10 @@ import net.amarantha.utils.colour.RGB;
 import net.amarantha.utils.properties.entity.PropertyNotFoundException;
 import org.junit.Test;
 
-import static net.amarantha.utils.colour.RGB.MAGENTA;
+import java.util.ArrayList;
+import java.util.List;
+
+import static net.amarantha.utils.colour.RGB.*;
 import static org.junit.Assert.*;
 
 public class PropertiesServiceTest {
@@ -25,6 +28,7 @@ public class PropertiesServiceTest {
         assertNull(test.getTestDouble());
         assertNull(test.getTestRGB());
         assertNull(test.getTestClass());
+//        assertNull(test.testStringList);
 
         try {
             props.injectProperties(test);
@@ -151,6 +155,16 @@ public class PropertiesServiceTest {
             assertEquals(RGB.MAGENTA,           props.getRgb("TestRGB"));
             assertEquals(TestProps.class,       props.getClass("TestClass"));
 
+            List<RGB> testList1 = props.getRgbList("TestRgbList");
+            assertTrue(testList1.contains(RGB.WHITE));
+            assertTrue(testList1.contains(RGB.BLACK));
+            assertTrue(testList1.contains(RGB.GREEN));
+
+            List<String> testList2 = props.getStringList("TestStringList");
+            assertTrue(testList2.contains("One"));
+            assertTrue(testList2.contains("Two"));
+            assertTrue(testList2.contains("Three"));
+
             assertEquals("Flaggy Flag",         props.getString("TestGroup", "TestString"));
             assertEquals(false,                 props.getBoolean("TestGroup", "TestBoolean"));
             assertEquals(17,                    props.getInt("TestGroup", "TestInteger").intValue());
@@ -172,12 +186,22 @@ public class PropertiesServiceTest {
         }
         assertTrue(failed);
 
+//        List<String> in = props.get("")
+
         props.set("OutputTest", "Greeting", "Hello you!");
         props.set("OutputTest", "TrueEnough", false);
         props.set("OutputTest", "Twelve", 12);
         props.set("OutputTest", "ThreePointFour", 3.4);
         props.set("OutputTest", "Magenta", RGB.MAGENTA);
         props.set("OutputTest", "TestProps", TestProps.class.getName());
+
+        List<RGB> list = new ArrayList<>();
+        list.add(RED);
+        list.add(BLUE);
+        list.add(GREEN);
+        list.add(CYAN);
+
+        props.set("OutputTest", "TestList", list);
 
     }
 

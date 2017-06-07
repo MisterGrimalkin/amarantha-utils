@@ -1,0 +1,40 @@
+OutputTest: 
+   Greeting: Hello you!
+   ThreePointFour: 3.4
+   TestProps: net.amarantha.utils.properties.TestProps
+   Magenta: 255,0,255
+   Twelve: 12
+   TrueEnough: false
+   TestList: 
+   - 255,0,0
+   - 0,0,255
+   - 0,255,0
+   - 0,255,255
+General: 
+   TestStringList: 
+   - One
+   - Two
+   - Three
+   TestInteger: 42
+   TestRGB: 255,0,255
+   TestFromValue: net.amarantha.utils.properties.entity.Property
+   TestBoolean: true
+   TestClass: net.amarantha.utils.properties.TestProps
+   TestDouble: 3.142
+   TestRgbList: 
+   - 255,255,255
+   - 0,0,0
+   - 0,255,0
+   TestString: Hello Internet
+TestGroup: 
+   TestStringList: 
+   - Alpha
+   - Beta
+   - Gamma
+   TestInteger: 17
+   TestRGB: 255,255,0
+   TestFromValue: net.amarantha.utils.properties.entity.Property
+   TestBoolean: false
+   TestClass: net.amarantha.utils.properties.TestGroupProps
+   TestDouble: 17.71
+   TestString: Flaggy Flag
