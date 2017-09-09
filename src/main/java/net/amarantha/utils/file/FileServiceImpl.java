@@ -11,6 +11,11 @@ import java.nio.file.Paths;
 public class FileServiceImpl implements FileService {
 
     @Override
+    public boolean exists(String filename) {
+        return Files.exists(Paths.get(filename));
+    }
+
+    @Override
     public String readFromFile(String filename) {
         try {
             return new String(Files.readAllBytes(Paths.get(filename)));
