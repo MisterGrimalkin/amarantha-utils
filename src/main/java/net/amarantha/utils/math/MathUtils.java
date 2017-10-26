@@ -60,4 +60,12 @@ public class MathUtils {
         return list.get(randomBetween(0, list.size()-1));
     }
 
+    public static <T> boolean arrayContains(T[] array, T value) {
+        for ( int i=0; i<array.length; i++ ) {
+            if ( array[i].equals(value) ) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
